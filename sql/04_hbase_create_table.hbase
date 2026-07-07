@@ -1,0 +1,23 @@
+-- ============================================================
+-- 智慧农业大数据分析系统 — HBase 订单明细表
+-- 文件: sql/04_hbase_create_table.hbase
+-- 运行: hbase shell sql/04_hbase_create_table.hbase
+-- ============================================================
+--
+-- 表名: agri_order_detail
+-- RowKey: user_id_order_date_order_id
+--   设计原因:
+--     - user_id 便于按用户组织订单
+--     - order_date 便于按日期理解订单
+--     - order_id 保证唯一性
+--
+-- 列族:
+--   base    — 订单基础信息 (order_id, user_id, order_time, pay_status)
+--   product — 商品信息 (product_id, quantity)
+--   pay     — 支付金额信息 (price, sales_amount)
+
+create 'agri_order_detail', 'base', 'product', 'pay'
+
+describe 'agri_order_detail'
+
+exit
