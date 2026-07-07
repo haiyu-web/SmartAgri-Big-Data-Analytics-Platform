@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧农业大数据分析系统 Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Microsoft YaHei', 'PingFang SC', Arial, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        /* ========== 侧边栏 ========== */
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, #b71c1c 0%, #c62828 40%, #d32f2f 100%);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; left: 0; bottom: 0;
+            z-index: 100;
+            box-shadow: 3px 0 20px rgba(183, 28, 28, 0.3);
+            overflow-y: auto;
+        }
+        .sidebar-logo {
+            padding: 28px 24px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            text-align: center;
+        }
+        .sidebar-logo .icon {
+            font-size: 40px; margin-bottom: 8px;
+        }
+        .sidebar-logo h2 {
+            color: #fff; font-size: 18px; font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .sidebar-logo p {
+            color: rgba(255,255,255,0.7); font-size: 11px; margin-top: 4px;
+        }
+        .sidebar-nav {
+            flex: 1; padding: 12px 0;
+        }
+        .sidebar-nav .nav-item {
+            display: flex; align-items: center; gap: 12px;
+            padding: 14px 24px;
+            cursor: pointer;
+            color: rgba(255,255,255,0.75);
+            font-size: 14px;
+            transition: all 0.25s;
+            border-left: 3px solid transparent;
+            text-decoration: none;
+        }
+        .sidebar-nav .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        .sidebar-nav .nav-item.active {
+            background: rgba(255,255,255,0.18);
+            color: #fff;
+            border-left-color: #fff;
+            font-weight: 600;
+        }
+        .sidebar-nav .nav-icon { font-size: 18px; width: 24px; text-align: center; }
+        .sidebar-footer {
+            padding: 16px 24px;
+            border-top: 1px solid rgba(255,255,255,0.15);
+            color: rgba(255,255,255,0.5);
+            font-size: 11px;
+        }
+
+        /* ========== 主内容区 ========== */
+        .main-content {
+            margin-left: 260px;
+            flex: 1;
+            padding: 24px 30px;
+            min-height: 100vh;
+            background: #f5f5f5;
+        }
+
+        /* ========== 概览卡片 ========== */
+        .overview {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 24px 20px;
+            text-align: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            border-top: 4px solid #d32f2f;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(211,47,47,0.15);
+        }
+        .card .value {
+            font-size: 34px;
+            font-weight: 700;
+            color: #c62828;
+            margin-bottom: 6px;
+        }
+        .card .label {
+            font-size: 13px;
+            color: #999;
+            letter-spacing: 0.5px;
+        }
+
+        /* ========== 内容面板 ========== */
+        .panel {
+            display: none;
+            animation: fadeSlide 0.35s ease;
+        }
+        .panel.active { display: block; }
+        @keyframes fadeSlide {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .panel-header {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 20px;
+        }
+        .panel-header h3 {
+            font-size: 20px; color: #c62828; font-weight: 600;
+        }
+        .panel-header .divider {
+            flex: 1; height: 2px;
+            background: linear-gradient(90deg, #ef9a9a, transparent);
+        }
+        .panel-box {
+            background: #fff;
+            border-radius: 14px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+        .chart { width: 100%; height: 420px; }
+
+        /* ========== AI Report 面板 ========== */
+        .ai-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        .ai-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            border-left: 4px solid #d32f2f;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            transition: box-shadow 0.2s;
+        }
+        .ai-card:hover { box-shadow: 0 4px 16px rgba(211,47,47,0.12); }
+        .ai-card.risk-card { border-left-color: #e53935; background: #fff5f5; }
+        .ai-card h4 {
+            color: #c62828; font-size: 15px; margin-bottom: 10px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .ai-card.risk-card h4 { color: #d32f2f; }
+        .ai-card p {
+            color: #555; font-size: 14px; line-height: 1.85; text-align: justify;
+        }
+
+        .ai-loading, .ai-error {
+            text-align: center; padding: 40px; font-size: 15px;
+            background: #fff; border-radius: 12px;
+        }
+        .ai-loading { color: #999; }
+        .ai-error { color: #e53935; }
+        .ai-error code {
+            background: #fce4ec; color: #c62828; padding: 3px 10px;
+            border-radius: 4px; font-size: 13px;
+        }
+        .ai-refresh-btn {
+            background: #c62828; color: #fff; border: none;
+            padding: 8px 20px; border-radius: 20px; cursor: pointer;
+            font-size: 13px; transition: background 0.2s;
+        }
+        .ai-refresh-btn:hover { background: #b71c1c; }
+
+        /* ========== 响应式 ========== */
+        @media (max-width: 900px) {
+            .sidebar { width: 70px; }
+            .sidebar .nav-item span:not(.nav-icon) { display: none; }
+            .sidebar-logo h2, .sidebar-logo p { display: none; }
+            .sidebar-logo { padding: 16px 8px; }
+            .sidebar-nav .nav-item { padding: 14px 18px; justify-content: center; }
+            .main-content { margin-left: 70px; padding: 16px; }
+            .overview { grid-template-columns: repeat(2, 1fr); }
+            .ai-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==================== 侧边栏 ==================== -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <div class="icon">🌾</div>
+            <h2>智慧农业大数据</h2>
+            <p>Smart Agriculture Analytics</p>
+        </div>
+        <nav class="sidebar-nav">
+            <div class="nav-item active" data-panel="panel-category">
+                <span class="nav-icon">📊</span> <span>品类销售分析</span>
+            </div>
+            <div class="nav-item" data-panel="panel-product">
+                <span class="nav-icon">🏆</span> <span>商品销量 Top10</span>
+            </div>
+            <div class="nav-item" data-panel="panel-city">
+                <span class="nav-icon">🏙️</span> <span>城市销售排行</span>
+            </div>
+            <div class="nav-item" data-panel="panel-daily">
+                <span class="nav-icon">📈</span> <span>每日销售趋势</span>
+            </div>
+            <div class="nav-item" data-panel="panel-predict">
+                <span class="nav-icon">🔮</span> <span>销量预测结果</span>
+            </div>
+            <div class="nav-item" data-panel="panel-ai">
+                <span class="nav-icon">🤖</span> <span>AI 经营分析报告</span>
+            </div>
+        </nav>
+        <div class="sidebar-footer">
+            © 2026 Agri-BigData<br>通义千问 AI · FastAPI
+        </div>
+    </aside>
+
+    <!-- ==================== 主内容区 ==================== -->
+    <main class="main-content">
+
+        <!-- 概览卡片 (始终显示) -->
+        <div class="overview" id="overview">
+            <div class="card">
+                <div class="value" id="totalSales">--</div>
+                <div class="label">总销售额 (元)</div>
+            </div>
+            <div class="card">
+                <div class="value" id="totalOrders">--</div>
+                <div class="label">总订单数</div>
+            </div>
+            <div class="card">
+                <div class="value" id="totalProducts">--</div>
+                <div class="label">商品种类</div>
+            </div>
+            <div class="card">
+                <div class="value" id="totalCities">--</div>
+                <div class="label">覆盖城市</div>
+            </div>
+        </div>
+
+        <!-- ===== 面板1: 品类销售分析 ===== -->
+        <section class="panel active" id="panel-category">
+            <div class="panel-header">
+                <h3>📊 品类销售额分析</h3>
+                <div class="divider"></div>
+            </div>
+            <div class="panel-box">
+                <div id="categoryChart" class="chart"></div>
+            </div>
+        </section>
+
+        <!-- ===== 面板2: 商品销量 Top10 ===== -->
+        <section class="panel" id="panel-product">
+            <div class="panel-header">
+                <h3>🏆 商品销量 Top10</h3>
+                <div class="divider"></div>
+            </div>
+            <div class="panel-box">
+                <div id="productTopChart" class="chart"></div>
+            </div>
+        </section>
+
+        <!-- ===== 面板3: 城市销售排行 ===== -->
+        <section class="panel" id="panel-city">
+            <div class="panel-header">
+                <h3>🏙️ 城市销售排行榜</h3>
+                <div class="divider"></div>
+            </div>
+            <div class="panel-box">
+                <div id="cityChart" class="chart"></div>
+            </div>
+        </section>
+
+        <!-- ===== 面板4: 每日销售趋势 ===== -->
+        <section class="panel" id="panel-daily">
+            <div class="panel-header">
+                <h3>📈 每日销售趋势</h3>
+                <div class="divider"></div>
+            </div>
+            <div class="panel-box">
+                <div id="dailyChart" class="chart"></div>
+            </div>
+        </section>
+
+        <!-- ===== 面板5: 销量预测结果 ===== -->
+        <section class="panel" id="panel-predict">
+            <div class="panel-header">
+                <h3>🔮 销量预测结果</h3>
+                <div class="divider"></div>
+            </div>
+            <div class="panel-box">
+                <div id="predictChart" class="chart"></div>
+            </div>
+        </section>
+
+        <!-- ===== 面板6: AI 经营分析报告 ===== -->
+        <section class="panel" id="panel-ai">
+            <div class="panel-header">
+                <h3>🤖 AI 经营分析报告</h3>
+                <span style="background:linear-gradient(135deg,#c62828,#e53935);color:#fff;padding:4px 14px;border-radius:20px;font-size:12px;">通义千问 qwen-plus</span>
+                <button class="ai-refresh-btn" onclick="loadAIReport()">🔄 刷新报告</button>
+                <div class="divider"></div>
+            </div>
+            <div class="ai-loading" id="aiLoading">正在加载 AI 经营分析报告...</div>
+            <div class="ai-error" id="aiError" style="display:none">
+                暂无 AI 报告数据<br>
+                请在 node01 执行 <code>python3 spark/06_qwen_ai_report.py</code> 生成报告
+            </div>
+            <div class="ai-grid" id="aiGrid" style="display:none">
+                <div class="ai-card">
+                    <h4>📊 销售概况总结</h4>
+                    <p id="aiSalesSummary"></p>
+                </div>
+                <div class="ai-card">
+                    <h4>🔮 预测结果解读</h4>
+                    <p id="aiPredictionSummary"></p>
+                </div>
+                <div class="ai-card">
+                    <h4>📦 补货建议</h4>
+                    <p id="aiStockAdvice"></p>
+                </div>
+                <div class="ai-card">
+                    <h4>📣 营销建议</h4>
+                    <p id="aiMarketingAdvice"></p>
+                </div>
+                <div class="ai-card risk-card">
+                    <h4>⚠️ 风险提示</h4>
+                    <p id="aiRiskWarning"></p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // ========== 图表实例 ==========
+        const catChart     = echarts.init(document.getElementById('categoryChart'));
+        const prodChart    = echarts.init(document.getElementById('productTopChart'));
+        const cityChart    = echarts.init(document.getElementById('cityChart'));
+        const dailyChart   = echarts.init(document.getElementById('dailyChart'));
+        const predictChart = echarts.init(document.getElementById('predictChart'));
+
+        const allCharts = [catChart, prodChart, cityChart, dailyChart, predictChart];
+
+        window.addEventListener('resize', () => allCharts.forEach(c => c.resize()));
+
+        // ========== 侧边栏切换逻辑 ==========
+        const navItems = document.querySelectorAll('.nav-item');
+        const panels   = document.querySelectorAll('.panel');
+
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                const targetId = item.dataset.panel;
+                // 切换 active 样式
+                navItems.forEach(n => n.classList.remove('active'));
+                item.classList.add('active');
+                // 切换面板
+                panels.forEach(p => p.classList.remove('active'));
+                document.getElementById(targetId).classList.add('active');
+                // 面板切换后 resize 图表
+                setTimeout(() => allCharts.forEach(c => c.resize()), 100);
+            });
+        });
+
+        // 图表配色 — 红为主调，辅以高对比色
+        const RED_GRADIENT = (start, end) => new echarts.graphic.LinearGradient(0, 0, 0, 1,
+            [{offset: 0, color: start}, {offset: 1, color: end}]);
+
+        // 环形图多色盘：红 + 蓝 + 橙 + 青 + 紫 + 绿
+        const PIE_PALETTE  = ['#d32f2f','#1976d2','#f57c00','#00838f','#7b1fa2','#388e3c',
+                              '#e64a19','#0277bd','#f9a825','#558b2f','#ad1457','#00695c'];
+
+        // 折线/预测图多色盘：明暗交替，色相拉开
+        const LINE_PALETTE = ['#c62828','#1e88e5','#2e7d32','#ef6c00','#6a1b9a',
+                              '#00838f','#ad1457','#4e342e','#283593','#f9a825',
+                              '#0d47a1','#bf360c'];
+
+        // ========== 数据加载 ==========
+        const theme = {
+            textStyle: { color: '#555' },
+            axisLabel: { color: '#777' },
+            axisLine:  { lineStyle: { color: '#ddd' } },
+            splitLine: { lineStyle: { color: '#eee' } }
+        };
+
+        // --- 品类销售 ---
+        fetch('/api/v1/dashboard/category')
+            .then(r => r.json())
+            .then(result => {
+                if (result.code === 200 && result.data) {
+                    const d = result.data;
+                    catChart.setOption({
+                        tooltip: { trigger: 'axis' },
+                        xAxis: { type: 'category', data: d.map(i => i.category), ...theme },
+                        yAxis: { type: 'value', name: '销售额 (元)', ...theme },
+                        series: [{
+                            type: 'bar', data: d.map(i => i.total_sales),
+                            itemStyle: { borderRadius: [6,6,0,0], color: RED_GRADIENT('#e53935','#b71c1c') },
+                            barWidth: '45%'
+                        }]
+                    });
+                    document.getElementById('totalSales').textContent =
+                        d.reduce((s, i) => s + parseFloat(i.total_sales), 0).toFixed(0);
+                    document.getElementById('totalOrders').textContent =
+                        d.reduce((s, i) => s + parseInt(i.order_count), 0);
+                }
+            });
+
+        // --- 商品 Top10 ---
+        fetch('/api/v1/dashboard/product-top')
+            .then(r => r.json())
+            .then(result => {
+                if (result.code === 200 && result.data) {
+                    const d = result.data;
+                    document.getElementById('totalProducts').textContent = d.length;
+                    prodChart.setOption({
+                        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                        grid: { left: '3%', right: '8%', bottom: '3%', containLabel: true },
+                        yAxis: { type: 'category', data: d.map(i => i.product_name).reverse(),
+                                axisLabel: { color: '#555', fontSize: 12 }, axisLine: { lineStyle: { color: '#ddd' } } },
+                        xAxis: { type: 'value', name: '销量', axisLabel: { color: '#777' },
+                                splitLine: { lineStyle: { color: '#eee' } } },
+                        series: [{
+                            type: 'bar', data: d.map(i => i.total_quantity).reverse(),
+                            itemStyle: { borderRadius: [0,6,6,0],
+                                color: new echarts.graphic.LinearGradient(0,0,1,0,[
+                                    {offset:0,color:'#ffcdd2'},{offset:1,color:'#e53935'}
+                                ])
+                            }
+                        }]
+                    });
+                }
+            });
+
+        // --- 城市销售 ---
+        fetch('/api/v1/dashboard/city')
+            .then(r => r.json())
+            .then(result => {
+                if (result.code === 200 && result.data) {
+                    const d = result.data;
+                    document.getElementById('totalCities').textContent = d.length;
+                    cityChart.setOption({
+                        tooltip: { trigger: 'item' },
+                        series: [{
+                            type: 'pie', radius: ['45%', '72%'],
+                            center: ['50%', '50%'],
+                            data: d.map(i => ({ name: i.city, value: parseFloat(i.total_sales) })),
+                            label: { color: '#555', fontSize: 13 },
+                            itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 3 },
+                            color: PIE_PALETTE
+                        }]
+                    });
+                }
+            });
+
+        // --- 每日趋势 ---
+        fetch('/api/v1/dashboard/daily')
+            .then(r => r.json())
+            .then(result => {
+                if (result.code === 200 && result.data) {
+                    const d = result.data;
+                    dailyChart.setOption({
+                        tooltip: { trigger: 'axis' },
+                        legend: { data: ['销售额','销量'], textStyle: { color: '#555' }, top: 5 },
+                        xAxis: { type: 'category', data: d.map(i => i.order_date),
+                                axisLabel: { color: '#777', rotate: 45, fontSize: 10 },
+                                axisLine: { lineStyle: { color: '#ddd' } } },
+                        yAxis: [
+                            { type: 'value', name: '销售额(元)', axisLabel: { color: '#777' },
+                              splitLine: { lineStyle: { color: '#eee' } } },
+                            { type: 'value', name: '销量', axisLabel: { color: '#777' } }
+                        ],
+                        series: [
+                            { name: '销售额', type: 'line', data: d.map(i => i.total_sales),
+                              smooth: true, itemStyle: { color: '#d32f2f' },
+                              lineStyle: { width: 2.5 },
+                              symbol: 'circle', symbolSize: 4 },
+                            { name: '销量', type: 'line', yAxisIndex: 1,
+                              data: d.map(i => i.total_quantity),
+                              smooth: true, itemStyle: { color: '#1976d2' },
+                              lineStyle: { width: 2 },
+                              symbol: 'diamond', symbolSize: 4 }
+                        ]
+                    });
+                }
+            });
+
+        // --- 预测数据 ---
+        fetch('/api/v1/dashboard/predict')
+            .then(r => r.json())
+            .then(result => {
+                if (result.code === 200 && result.data) {
+                    const d = result.data;
+                    const dates    = [...new Set(d.map(i => i.predict_date))].sort();
+
+                    // 构建产品→品类映射，按品类+名称排序，保证图例与数据顺序一致
+                    const productCatMap = {};
+                    d.forEach(r => { productCatMap[r.product_name] = r.category; });
+                    const allProducts = [...new Set(d.map(i => i.product_name))];
+                    const CAT_ORDER = { '茶叶': 1, '水果': 2, '干货': 3 };
+                    const products = allProducts.sort((a, b) => {
+                        const ca = CAT_ORDER[productCatMap[a]] || 99;
+                        const cb = CAT_ORDER[productCatMap[b]] || 99;
+                        if (ca !== cb) return ca - cb;
+                        return a.localeCompare(b, 'zh');
+                    });
+
+                    // 按品类着色：茶叶→绿色系, 水果→橙色系, 干货→棕色系
+                    const CAT_COLORS = {
+                        '茶叶': ['#2e7d32','#388e3c','#43a047','#4caf50'],
+                        '水果': ['#e65100','#ef6c00','#f57c00','#fb8c00'],
+                        '干货': ['#6d4c41','#795548','#8d6e63','#a1887f']
+                    };
+                    let catCounters = {};
+                    function catColor(pName) {
+                        const cat = productCatMap[pName] || '其他';
+                        if (!catCounters[cat]) catCounters[cat] = 0;
+                        const colors = CAT_COLORS[cat] || ['#757575','#9e9e9e','#bdbdbd','#e0e0e0'];
+                        return colors[catCounters[cat]++ % colors.length];
+                    }
+
+                    const SYMBOLS = ['circle','diamond','triangle','rect','roundRect','arrow'];
+
+                    predictChart.setOption({
+                        tooltip: { trigger: 'axis' },
+                        legend: {
+                            data: products.map(p => productCatMap[p] + ' · ' + p),
+                            textStyle: { color: '#555', fontSize: 11 },
+                            top: 5, type: 'scroll', orient: 'horizontal',
+                            itemGap: 8
+                        },
+                        grid: { left: '3%', right: '5%', bottom: '3%', top: 60, containLabel: true },
+                        xAxis: { type: 'category', data: dates,
+                                axisLabel: { color: '#777' },
+                                axisLine: { lineStyle: { color: '#ddd' } } },
+                        yAxis: { type: 'value', name: '预测销量 (件)',
+                                axisLabel: { color: '#777' },
+                                splitLine: { lineStyle: { color: '#eee' } } },
+                        series: products.map((p, idx) => ({
+                            name: productCatMap[p] + ' · ' + p,
+                            type: 'line',
+                            data: dates.map(dt => {
+                                const it = d.find(r => r.product_name === p && r.predict_date === dt);
+                                return it ? it.predict_quantity : 0;
+                            }),
+                            smooth: true,
+                            symbol: SYMBOLS[idx % SYMBOLS.length],
+                            symbolSize: 5,
+                            itemStyle: { color: catColor(p) },
+                            lineStyle: { width: 2 }
+                        }))
+                    });
+                }
+            });
+
+        // --- AI 报告 ---
+        function loadAIReport() {
+            document.getElementById('aiLoading').style.display = 'block';
+            document.getElementById('aiGrid').style.display = 'none';
+            document.getElementById('aiError').style.display = 'none';
+
+            fetch('/api/v1/dashboard/ai-report')
+                .then(r => r.json())
+                .then(result => {
+                    document.getElementById('aiLoading').style.display = 'none';
+                    if (result.code === 200 && result.data) {
+                        document.getElementById('aiGrid').style.display = 'grid';
+                        const d = result.data;
+                        document.getElementById('aiSalesSummary').textContent      = d.sales_summary      || '暂无';
+                        document.getElementById('aiPredictionSummary').textContent  = d.prediction_summary  || '暂无';
+                        document.getElementById('aiStockAdvice').textContent        = d.stock_advice        || '暂无';
+                        document.getElementById('aiMarketingAdvice').textContent    = d.marketing_advice    || '暂无';
+                        document.getElementById('aiRiskWarning').textContent        = d.risk_warning        || '暂无';
+                    } else {
+                        document.getElementById('aiError').style.display = 'block';
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('aiLoading').style.display = 'none';
+                    document.getElementById('aiError').style.display = 'block';
+                });
+        }
+        loadAIReport();
+    </script>
+</body>
+</html>
